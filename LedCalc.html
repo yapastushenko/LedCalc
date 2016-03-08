@@ -1,0 +1,107 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Led calculator</title>
+	<meta charset="utf-8" />
+    <style>
+        #main {width:600px;height:400px;margin:auto;padding:10px;border-style:dotted;}
+        .inp {width:150px;height:20px;float:left;}
+        #ledresult {width:600px;margin-top:10px;}
+        #divschema {width:600px;margin-top:10px;}
+    </style>
+    <script type="text/javascript">
+        window.onload = function () {
+            var xhr = new XMLHttpRequest();
+            var ledInput = document.getElementById("ledinput");
+            var ledResult = document.getElementById("ledresult");
+            var canvas1 = document.getElementById("schema");
+            var context = canvas1.getContext("2d");
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    document.getElementById("wait").style.display = "none";
+                    if (xhr.responseText > 0) {
+                        ledResult.innerHTML = "You will need " + xhr.responseText + " ohm resistor.";
+                        createSchema(ledInput.n.value);
+                    }
+                    else if (xhr.responseText == 0) {
+                        ledResult.innerHTML = "You do not need resistor. But this is not recomended.";
+                    }
+                    else if (xhr.responseText < 0) {
+                        ledResult.innerHTML = "Error in calculator";
+                    }
+                }
+            }
+            function createSchema(numberLed) {
+                var radius = 10;
+                canvas1.width = radius * (3 * numberLed + 6);
+                canvas1.height = 100;
+                context.beginPath();
+                context.moveTo(radius, 50);
+                context.lineTo(radius * 2, 50);
+                context.stroke();
+                for (var i = 1; i <= numberLed; i++) {
+                    context.beginPath();
+                    context.arc(radius * (3 * i), 50, radius, 0, 2 * Math.PI);
+                    context.stroke();
+
+                    context.beginPath();
+                    context.moveTo(radius * (3 * i + 1), 50);
+                    context.lineTo(radius * (3 * i + 2), 50);
+                    context.stroke();
+                }
+                i--;
+                context.rect(radius * (3 * i + 2), 50 - (radius / 2), radius * 2, radius);
+                context.stroke();
+                context.beginPath();
+                context.moveTo(radius * (3 * i + 4), 50);
+                context.lineTo(radius * (3 * i + 5), 50);
+                context.stroke();
+            }
+            function checkInput() {
+                if (ledInput.v.value.search(/\d/) == -1) { return false };
+                if (ledInput.n.value.search(/\d/) == -1) { return false };
+                if (ledInput.i.value.search(/\d/) == -1) { return false };
+                return true;
+            }
+            ledInput.enter.addEventListener("click", function () {
+                context.clearRect(0, 0, canvas1.width, canvas1.height);
+                if (checkInput()) {
+                    if (ledInput.v.value < ledInput.n.value * 3) {
+                        ledResult.innerHTML = "Insufficient voltage. Please input less number of led!";
+                    }
+                    else {
+                        ledResult.innerHTML = "";
+                        document.getElementById("wait").style.display = "block";
+                        xhr.open("POST", "CalcHandler.ashx");
+                        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                        xhr.send("a=" + ledInput.v.value + "&b=" + ledInput.n.value + "&c=" + ledInput.i.value);
+                    }
+                }
+                else {
+                    ledResult.innerHTML = "Please input only number in all fields!";
+                }
+                
+            })
+        }
+    </script>
+</head>
+<body>
+    <div id="main">
+        <form id="ledinput">
+            <div class="inp">Input voltage</div>
+            <input type="text" name="v" value="24"/><br/>
+            <div class="inp">Number led</div>
+            <input type="text" name="n" value="6"/><br />
+            <div class="inp">Nominal current</div>
+            <input type="text" name="i" value="20" placeholder="in mA"/><br /><br />
+            <div class="inp"></div>
+            <input type="button" name="enter" value="Calculate" />
+        </form>
+        <div id="ledresult"></div>
+        <div id="divschema">
+            <img id="wait" src="03_Samples/ajax-loader.gif" style="display:none" />
+            <canvas id="schema"></canvas>
+        </div>
+    </div>
+</body>
+</html>
